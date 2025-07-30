@@ -1,13 +1,25 @@
 .. image:: https://raw.githubusercontent.com/ajwheeler/korg.jl/main/docs/src/assets/logo.svg
   :width: 110
   :height: 110
-  :align: left
 
 korg.py: WORK IN PROGRESS
 =========================
 
 .. image:: https://img.shields.io/pypi/v/korg
+   :target: https://pypi.org/project/korg
    :alt: PyPI - Version
+
+.. image:: https://github.com/ajwheeler/korg.py/actions/workflows/ci.yml/badge.svg
+    :target: https://github.com/ajwheeler/korg.py/actions
+    :alt: Astropy's GitHub Actions CI Status
+
+.. image:: https://img.shields.io/badge/pre--commit-enabled-brightgreen?logo=pre-commit&logoColor=white
+    :target: https://github.com/pre-commit/pre-commit
+    :alt: pre-commit
+
+.. image:: https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/astral-sh/ruff/main/assets/badge/v2.json
+    :target: https://github.com/astral-sh/ruff
+    :alt: Ruff
 
 
 
