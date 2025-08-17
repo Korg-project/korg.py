@@ -4,8 +4,8 @@ This module defines the python interface to Korg
 
 import os
 from collections import ChainMap
-from collections.abc import Callable, Mapping, Sequence
-from typing import Any, NamedTuple, Never, TypedDict
+from collections.abc import Callable, Mapping
+from typing import Any, Never
 from ._julia_import import jl, Korg
 
 import numpy as np
@@ -136,84 +136,109 @@ def read_linelist(
     return Linelist(Korg.read_linelist(coerced_fname, **kwargs))
 
 
-class SynthesizeTypedKwargDict(TypedDict, total=False):
-    """
-    Provides type annotations for the dict of optional kwargs that are forwarded to
-    the `synthesize` Julia Function provided by Korg.jl
-
-    This type assumes that if you want to use a keyword argument's default value, you
-    simply won't pass that keyword argument. Any annotation of `None` means that the
-    julia keyword argument accepts `nothing`. This type is mostly intended for
-    type-checking purposes with static analysis tools like mypy.
-    """
-
-    vmic: KFloat
-    line_buffer: KFloat
-    cntm_step: KFloat
-    air_wavelengths: bool
-    hydrogen_lines: bool
-    use_MHD_for_hydrogen_lines: bool
-    hydrogen_line_window_size: int
-    mu_values: int
-    line_cutoff_threshold: KFloat
-    electron_number_density_warn_threshold: KFloat
-    electron_number_density_warn_min_value: KFloat
-    return_cntm: bool
-    I_scheme: str
-    tau_scheme: str
-    ionization_energies: ToBeAnnotated
-    partition_funcs: ToBeAnnotated
-    log_equilibrium_constants: ToBeAnnotated
-    molecular_cross_sections: ToBeAnnotated
-    # the ONLY reason that the next entry expects None is because the Julia function
-    # may accept `nothing` (the julia counterpart for None)
-    use_chemical_equilibrium_from: NoPyType | None
-    verbose: bool
-
-
-class FormatAXTypedKwargDict(TypedDict, total=False):
-    """
-    Provides type annotations for the dict of optional kwargs that are forwarded to
-    the `format_A_X` Julia Function provided by Korg.jl
-
-    This type assumes that if you want to use a keyword argument's default value, you
-    simply won't pass that keyword argument. Any annotation of `None` means that the
-    julia keyword argument accepts `nothing`. This type is mostly intended for
-    type-checking purposes with static analysis tools like mypy.
-    """
-
-    solar_relative: bool
-    solar_abundances: Sequence[KFloat]
-    alpha_elements: Sequence[int]
-
-
-class SynthResult(NamedTuple):
-    wls: Array1dF64
-    flux: Array1dF64
-    continuum: Array1dF64
-
-
 # we can't currently reuse the exact Julia signature since the Julia signature
 # explicitly references synthesize and format_A_X, which we are not providing python
 # wrappers for at this time
+#
+# -> we may want to revisit our choice to write the docstring in the numpydoc style
+#    (https://numpydoc.readthedocs.io/en/latest/format.html)
 def synth(
     *,
     Teff: KFloat,
     logg: KFloat,
-    m_H: KFloat = 0.0,
+    M_H: KFloat = 0.0,
     alpha_H: KFloat | None = None,
     linelist: Linelist | None = None,
     wavelengths: WavelengthsType = (5000, 6000),
     rectify: bool = True,
-    R: KFloat = float("inf"),
+    R: KFloat | Callable[[float], float] = float("inf"),
     vsini: KFloat = 0.0,
     vmic: KFloat = 1.0,
-    synthesize_kwargs: SynthesizeTypedKwargDict | None = None,
-    format_A_X_kwargs: FormatAXTypedKwargDict | None = None,
+    synthesize_kwargs: dict[str, Any] | None = None,
+    format_A_X_kwargs: dict[str, Any] | None = None,
     # the following annotation applies to all kwarg values
     **abundances: KFloat,
-) -> SynthResult:
-    """Creates a synthetic spectrum... TODO: ADD A FULL DOCSTRING"""
+) -> tuple[Array1dF64, Array1dF64, Array1dF64]:
+    """Creates a synthetic spectrum.
+
+    Parameters
+    ----------
+    Teff
+        The effective temperature (in units of Kelvin)
+    logg
+        The surface gravity in cgs units
+    M_H
+        The metallicity or [metals/H] (the default is 0.0). In more detail,
+        this is the log₁₀ solar-relative abundance of elements heavier than He.
+        This argument effectively sets default abundances that can be
+        overridden, on a per-element basis, by the ``alpha_H`` argument and
+        the ``**abundances`` keyword arguments.
+    alpha_H
+        The alpha enhancement, [α/H] (the default is the value of ``M_H``). In
+        more detail, this specifies the log₁₀ solar-relative abundances that
+        override the abundances set by ``M_H`` for each alpha element
+        ({default_alpha_elements}). These abundances can be overridden by the
+        ``**abundances`` keyword arguments.
+    linelist
+        A linelist
+    wavelengths
+        A tuple of the start and end wavelengths (default ia (5000, 6000)), or
+        a sequence of ``(λstart, λstop)`` pairs. The values have units of
+        angstroms.
+    rectify
+        Whether to rectify (continuum normalize) the spectrum (default is true).
+    R
+        The resolution. The default is ``float("inf")``, which means that no
+        LSF (line spread function) is applied. ``R`` can be a scalar, or a
+        function that maps a wavelength (in Å) to resolving power.
+    vsini
+        Projected rotational velocity in km/s (default is 0).
+    vmic
+        microturbulent velocity in km/s (default is 1.0).
+    **abundances
+        These keyword arguments can be any atomic symbol (e.g. ``Fe`` or ``C``)
+        can be used to specify a (solar relative, [``X``/H]) abundance. These
+        override ``M_H`` and ``alpha_H``. Specifying an individual abundance
+        means that the true metallicity and alpha will not correspond precisely
+        to the values of ``M_H`` and ``alpha_H``. This is the only way to
+        specify a non-solar abundance of He.
+
+    Returns
+    -------
+    wls: array
+        A 1D array of wavelengths (in units of angstroms) at which the
+        spectrum was synthesized
+    rectified_flux: array
+        A 1D array, with the same shape as ``wls``, that the rectified
+        output spectrum. The array holds unitless values between 0 and 1.
+    continuum
+        A 1D array, with the same shape as ``wls``, that holds the raw
+        continuum spectrum (i.e. it is the spectrum without lines in the
+        linelist and the Hydrogen lines). These values have units of
+        erg/s/cm^4/Å. Be aware that these values:
+
+        - aren't affected by the LSF (see the ``R`` argument)
+        - don't account for stellar rotation (see the ``vsini`` parameter) or
+          limb darkening
+
+    Other Parameters
+    ----------------
+    synthesize_kwargs, format_A_X_kwargs
+        dicts of additional keyword arguments that are respectively forwarded
+        to the ``Korg.synthesize`` and ``Korg.format_A_X`` julia functions.
+
+        .. warning::
+
+           Be aware that:
+
+           1. These kwargs are for advanced users
+           2. Misusing them will result in cryptic error messages
+           3. If you are thinking about using them, you should consider using
+              ``juliacall`` directly or switching to julia
+           4. We reserve the right to change the expected types of kwargs
+              corresponding to Julia types without obvious analogous python
+              types, at any time (e.g. between patch versions).
+    """
 
     # here, we deal with building up a subset of the keyword arguments where we use
     # None to indicate that we can't represent the default value in python
@@ -231,7 +256,7 @@ def synth(
     tmp_wls, tmp_flux, tmp_continuum = Korg.synth(
         Teff=Teff,
         logg=logg,
-        m_H=m_H,
+        M_H=M_H,
         wavelengths=wavelengths,
         rectify=rectify,
         R=R,
@@ -282,8 +307,15 @@ def synth(
     #         `juliacall.VectorValue` python object. (I guess it's plausible this
     #         could be completed in a single step)
     #      2. we need julia to then deallocate its memory
-    return SynthResult(
-        wls=np.array(tmp_wls, copy=False),
-        flux=np.array(tmp_flux, copy=False),
-        continuum=np.array(tmp_continuum, copy=False),
+    return (
+        np.array(tmp_wls, copy=False),
+        np.array(tmp_flux, copy=False),
+        np.array(tmp_continuum, copy=False),
     )
+
+
+synth.__doc__ = synth.__doc__.format(
+    default_alpha_elements=", ".join(
+        Korg.atomic_symbols[i - 1] for i in Korg.default_alpha_elements
+    )
+)
