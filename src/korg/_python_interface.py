@@ -5,7 +5,7 @@ This module defines the python interface to Korg
 import os
 from collections import ChainMap
 from collections.abc import Callable, Mapping
-from typing import Any, Never
+from typing import Any, Never, cast
 from ._julia_import import jl, Korg
 
 import numpy as np
@@ -314,7 +314,10 @@ def synth(
     )
 
 
-synth.__doc__ = synth.__doc__.format(
+# plug the default list of alpha elements directly into the docstring
+# -> note: we use ``cast`` purely to satisfy the type-checker; it has no effect at
+#    runtime (it simply returns the 2nd argument without any changes)
+synth.__doc__ = cast(str, synth.__doc__).format(
     default_alpha_elements=", ".join(
         Korg.atomic_symbols[i - 1] for i in Korg.default_alpha_elements
     )
