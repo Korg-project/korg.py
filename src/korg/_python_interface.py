@@ -32,6 +32,7 @@ type KFloat = float | np.float32 | np.float64
 # this is a placeholder for family of types that can be coerced to Korg.jl's internal
 # Wavelengths Type
 # Todo: get more explicit!
+# should support: 2-tuple, 3-tuple, list of 2-tuples, list of 3-tuples
 type WavelengthsType = Any
 
 
