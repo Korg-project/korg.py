@@ -1,9 +1,10 @@
 {
-    "julia": "1.10",
-    "packages": {
-        "Korg": {
-            "uuid": "acafc109-a718-429c-b0e5-afd7f8c7ae46",
-            "version": "0.46.0"
-        }
+  "julia": "1.10",
+  "packages": {
+    "Korg": {
+      "uuid": "acafc109-a718-429c-b0e5-afd7f8c7ae46",
+      "version": "1.0",
+      "rev": "v1.0.0"
     }
+  }
 }
