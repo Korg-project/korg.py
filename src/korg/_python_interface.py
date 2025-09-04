@@ -8,9 +8,11 @@ from collections.abc import Callable, Iterable, Mapping
 from typing import Any, Never, cast
 
 import numpy as np
-from juliacall import VectorValue as jlVectorValue
 
+# these two imports must be in this order to prevent erroneously warning about
+# juliacall being already imported
 from ._julia_import import Korgjl, jl
+from juliacall import VectorValue as jlVectorValue
 
 # define some type aliases
 
