@@ -10,7 +10,7 @@ from typing import Any, Never, cast
 import numpy as np
 from juliacall import VectorValue as jlVectorValue
 
-from ._julia_import import Korg, jl
+from ._julia_import import Korgjl, jl
 
 # define some type aliases
 
@@ -99,22 +99,22 @@ class Linelist:
 
 @_perfect_jl_shadowing
 def get_APOGEE_DR17_linelist(*, include_water: bool = True) -> Linelist:
-    return Linelist(Korg.get_APOGEE_DR17_linelist(include_water=include_water))
+    return Linelist(Korgjl.get_APOGEE_DR17_linelist(include_water=include_water))
 
 
 @_perfect_jl_shadowing
 def get_GALAH_DR3_linelist() -> Linelist:
-    return Linelist(Korg.get_GALAH_DR3_linelist())
+    return Linelist(Korgjl.get_GALAH_DR3_linelist())
 
 
 @_perfect_jl_shadowing
 def get_GES_linelist(*, include_molecules: bool = True) -> Linelist:
-    return Linelist(Korg.get_GES_linelist(include_molecules=include_molecules))
+    return Linelist(Korgjl.get_GES_linelist(include_molecules=include_molecules))
 
 
 @_perfect_jl_shadowing
 def get_VALD_solar_linelist() -> Linelist:
-    return Linelist(Korg.get_VALD_solar_linelist())
+    return Linelist(Korgjl.get_VALD_solar_linelist())
 
 
 def load_ExoMol_linelist(
@@ -165,7 +165,7 @@ def load_ExoMol_linelist(
         This functionality is in beta. It's behavior may change without a major version number bump.
     """
     return Linelist(
-        Korg.load_ExoMol_linelist(
+        Korgjl.load_ExoMol_linelist(
             species,
             states_file,
             transitions_file,
@@ -197,7 +197,7 @@ def read_linelist(
         kwargs["format"] = format
     if isotopic_abundances is not None:
         kwargs["isotopic_abundances"] = isotopic_abundances
-    return Linelist(Korg.read_linelist(coerced_fname, **kwargs))
+    return Linelist(Korgjl.read_linelist(coerced_fname, **kwargs))
 
 
 # we can't currently reuse the exact Julia signature since the Julia signature
@@ -317,7 +317,7 @@ def synth(
     if format_A_X_kwargs is not None:
         partial_kwargs["format_A_X_kwargs"] = format_A_X_kwargs
 
-    tmp_wls, tmp_flux, tmp_continuum = Korg.synth(
+    tmp_wls, tmp_flux, tmp_continuum = Korgjl.synth(
         Teff=Teff,
         logg=logg,
         M_H=M_H,
@@ -383,7 +383,7 @@ def synth(
 #    runtime (it simply returns the 2nd argument without any changes)
 synth.__doc__ = cast(str, synth.__doc__).format(
     default_alpha_elements=", ".join(
-        Korg.atomic_symbols[i - 1] for i in Korg.default_alpha_elements
+        Korgjl.atomic_symbols[i - 1] for i in Korgjl.default_alpha_elements
     )
 )
 
@@ -393,7 +393,7 @@ synth.__doc__ = cast(str, synth.__doc__).format(
 def vacuum_to_air(wavelengths: Array1dF64 | KFloat) -> Array1dF64 | KFloat:
     # this works even when wavelengths is a single KFloat because of Julia's
     # broadcasting semantics
-    wls = jl.broadcast(Korg.vacuum_to_air, wavelengths)
+    wls = jl.broadcast(Korgjl.vacuum_to_air, wavelengths)
     if isinstance(wls, jlVectorValue):
         return np.array(wls, copy=False)
     else:
@@ -404,7 +404,7 @@ def vacuum_to_air(wavelengths: Array1dF64 | KFloat) -> Array1dF64 | KFloat:
 def air_to_vacuum(wavelengths: Array1dF64 | KFloat) -> Array1dF64 | KFloat:
     # this works even when wavelengths is a single KFloat because of Julia's
     # broadcasting semantics
-    wls = jl.broadcast(Korg.vacuum_to_air, wavelengths)
+    wls = jl.broadcast(Korgjl.vacuum_to_air, wavelengths)
     if isinstance(wls, jlVectorValue):
         return np.array(wls, copy=False)
     else:
