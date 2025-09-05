@@ -121,8 +121,8 @@ def get_VALD_solar_linelist() -> Linelist:
 
 def load_ExoMol_linelist(
     species: str,
-    states_file: os.PathLike,
-    transitions_file: os.PathLike,
+    states_file: str | bytes | os.PathLike,
+    transitions_file: str | bytes | os.PathLike,
     lower_wavelength: KFloat,
     upper_wavelength: KFloat,
     *,
@@ -169,8 +169,8 @@ def load_ExoMol_linelist(
     return Linelist(
         Korgjl.load_ExoMol_linelist(
             species,
-            states_file,
-            transitions_file,
+            os.fsdecode(states_file),
+            os.fsdecode(transitions_file),
             lower_wavelength,
             upper_wavelength,
             isotopes=isotopes,
@@ -184,13 +184,13 @@ def load_ExoMol_linelist(
 # we can't currently reuse the exact Julia signature since the Julia signature
 # explicitly states that it returns a vector of Lines
 def read_linelist(
-    fname: os.PathLike,
+    fname_arg: str | bytes | os.PathLike,
     *,
     format: str | None = None,
     isotopic_abundances: Mapping[int, Mapping[float, float]] | None = None,
 ) -> Linelist:
     # coerce fname to a string
-    coerced_fname = os.fsdecode(fname)
+    coerced_fname = os.fsdecode(fname_arg)
 
     # build up kwargs (we have to play some games here since we can't natively
     # represent the default values in python)

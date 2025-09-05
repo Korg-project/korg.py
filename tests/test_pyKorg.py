@@ -7,11 +7,27 @@ import numpy as np
 import korg
 
 
-def test_linelists():
+def test_builtin_linelists():
     korg.get_APOGEE_DR17_linelist()
     korg.get_GALAH_DR3_linelist()
     korg.get_GES_linelist(include_molecules=False)
     korg.get_VALD_solar_linelist()
+
+
+def test_linelist_parsing():
+    korg.read_linelist("tests/data/linelist.vald")
+
+
+def test_ExoMol_loading():
+    linelist = korg.load_ExoMol_linelist(
+        "CaH",
+        "tests/data/ExoMol/40Ca-1H__XAB_abridged.states",
+        "tests/data/ExoMol/40Ca-1H__XAB_abridged.trans",
+        6800,
+        6810,
+        line_strength_cutoff=-np.inf,  # don't filter anything out
+    )
+    assert len(linelist._lines) == 284
 
 
 def test_synth():
