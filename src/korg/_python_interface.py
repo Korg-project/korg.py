@@ -6,6 +6,7 @@ import os
 from collections import ChainMap
 from collections.abc import Callable, Iterable, Mapping
 from typing import Any, Never, cast
+import commonmark  # for docstring conversion
 
 import numpy as np
 
@@ -52,32 +53,26 @@ def _perfect_jl_shadowing[**P, T](fn: Callable[P, T]) -> Callable[P, T]:
     The main purpose of this function is to add the Korg docstring. This should
     be used somewhat sparingly (i.e. in cases when we are confident that the
     docstring will never mention Julia-specific types)
+
+    It strips the manually added function signature, then converts the remaining
+    docstring from markdown to restructured text with commonmark.
     """
-    _recycle_jl_docstring(fn)
-    return fn
 
+    docstring = jl.seval(f"(@doc Korg.{fn.__name__}).text[1]")
 
-def _recycle_jl_docstring(fn: Callable):
-    # this is experimental (to be used sparingly in cases when we are confident that
-    # the docstrings won't mention Julia specific types)
-    #
-    # this is separate from _perfect_jl_shadowing because there may be a lot of heavy
-    # lifting (and there could conceivably be cases where we want to reuse part of a
-    # docstring)
-
-    # TODO: we need to figure out how to best translate Documenter.jl flavored markdown
-    #       to restructured text. Since the docstrings of all public Korg functions
-    #       largely share a common structure, it probably wouldn't be bad to do this
-    #       with a few regex statements
-    jl_docstring = jl.seval(f"(@doc Korg.{fn.__name__}).text[1]")
-
-    if jl_docstring.startswith(f"    {fn.__name__}("):
-        first_newline = jl_docstring.index("\n")
-        fn.__doc__ = jl_docstring[first_newline:].lstrip()
+    if docstring.startswith(f"    {fn.__name__}("):
+        first_newline = docstring.index("\n")
+        docstring = docstring[first_newline:].lstrip()
     else:
         raise RuntimeError(
-            f"There was a problem getting the docstring for {fn.__name__}"
+            f"There was a problem setting the docstring for {fn.__name__}: no function signature in Julia doctring."
         )
+
+    ast = commonmark.Parser().parse(docstring)
+    rst = commonmark.ReStructuredTextRenderer().render(ast)
+    fn.__doc__ = rst
+
+    return fn
 
 
 class Linelist:
