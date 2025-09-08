@@ -12,7 +12,7 @@ import numpy as np
 # these two imports must be in this order to prevent erroneously warning about
 # juliacall being already imported
 from ._julia_import import Korgjl, jl
-from juliacall import VectorValue as jlVectorValue
+import juliacall
 
 # define some type aliases
 
@@ -32,14 +32,18 @@ type NoPyType = Never
 #   rather that arg
 type KFloat = float | np.float32 | np.float64
 
-# this is a placeholder for family of types that can be coerced to Korg.jl's internal
-# Wavelengths Type
-# Todo: get more explicit!
-# should support: 2-tuple, 3-tuple, list of 2-tuples, list of 3-tuples
-type WavelengthsType = Any
-
+# not used except to define WavelengthsType
+type SingleWlRangeType = tuple[KFloat, KFloat] | tuple[KFloat, KFloat, KFloat]
+# Everything that's a documented, guarenteed valid input to Korg.Wavelengths
+type WavelengthsType = SingleWlRangeType | list[SingleWlRangeType]
 
 type Array1dF64 = np.ndarray[tuple[int], np.dtype[np.float64]]
+
+
+def _covert_wavelengths_param(wls_param):
+    if isinstance(wls_param, tuple):
+        return wls_param
+    return juliacall.convert(jl.Vector, wls_param)
 
 
 def _perfect_jl_shadowing[**P, T](fn: Callable[P, T]) -> Callable[P, T]:
@@ -84,9 +88,9 @@ class Linelist:
     :py:func:`~korg.get_GES_linelist`, etc.
     """
 
-    _lines: jlVectorValue
+    _lines: juliacall.VectorValue
 
-    def __init__(self, lines: jlVectorValue):
+    def __init__(self, lines: juliacall.VectorValue):
         # this is NOT a public method
         self._lines = lines
 
@@ -323,7 +327,7 @@ def synth(
         Teff=Teff,
         logg=logg,
         M_H=M_H,
-        wavelengths=wavelengths,
+        wavelengths=_covert_wavelengths_param(wavelengths),
         rectify=rectify,
         R=R,
         vsini=vsini,
@@ -396,7 +400,7 @@ def vacuum_to_air(wavelengths: Array1dF64 | KFloat) -> Array1dF64 | KFloat:
     # this works even when wavelengths is a single KFloat because of Julia's
     # broadcasting semantics
     wls = jl.broadcast(Korgjl.vacuum_to_air, wavelengths)
-    if isinstance(wls, jlVectorValue):
+    if isinstance(wls, juliacall.VectorValue):
         return np.array(wls, copy=False)
     else:
         return wls
@@ -406,8 +410,8 @@ def vacuum_to_air(wavelengths: Array1dF64 | KFloat) -> Array1dF64 | KFloat:
 def air_to_vacuum(wavelengths: Array1dF64 | KFloat) -> Array1dF64 | KFloat:
     # this works even when wavelengths is a single KFloat because of Julia's
     # broadcasting semantics
-    wls = jl.broadcast(Korgjl.vacuum_to_air, wavelengths)
-    if isinstance(wls, jlVectorValue):
+    wls = jl.broadcast(Korgjl.air_to_vacuum, wavelengths)
+    if isinstance(wls, juliacall.VectorValue):
         return np.array(wls, copy=False)
     else:
         return wls
