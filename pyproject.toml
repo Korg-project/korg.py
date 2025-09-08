@@ -29,7 +29,8 @@ authors = [
 # I need to revisit the following
 dependencies = [
   'numpy',
-  'juliacall'
+  'juliacall',
+  "commonmark>=0.9.1",
 ]
 classifiers = [
     "Environment :: Console",
