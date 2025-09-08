@@ -3,7 +3,7 @@
   "packages": {
     "Korg": {
       "uuid": "acafc109-a718-429c-b0e5-afd7f8c7ae46",
-      "version": "1"
+      "version": "^1.0.1"
     }
   }
 }
