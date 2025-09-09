@@ -21,7 +21,7 @@ def fit_spectrum(
     wl_buffer: KFloat = 1.0,
     precision: KFloat = 1e-4,
     time_limit: KFloat = 10_000,
-    adjust_continuum=False,
+    adjust_continuum:bool = False,
     **synthesis_kwargs,
 ):
     Korgjl.Fit.fit_spectrum(
