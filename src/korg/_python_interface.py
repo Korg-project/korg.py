@@ -164,7 +164,10 @@ def load_ExoMol_linelist(
     verbose
         if `true` (default), will print progress information to the console.
 
-    Note: this differs from the Korg.jl API in that it does not support custom isotopic abundances.
+    Note
+    -----
+    Unlike the corresponding Julia function function provided by the Korg.jl, this function does not support
+    custom isotopic abundances.
 
     .. warning::
 
