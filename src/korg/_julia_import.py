@@ -20,8 +20,7 @@ if "juliacall" in sys.modules:
 
     warnings.warn(
         "juliacall module already imported, so korg will not configure `PYTHON_JULIACALL_HANDLE_SIGNALS` or `PYTHON_JULIACALL_THREADS`."
-        "You should set `PYTHON_JULIACALL_HANDLE_SIGNALS=yes` to avoid segfaults. "
-        + handle_signals_msg
+        f"You should set `PYTHON_JULIACALL_HANDLE_SIGNALS=yes` to avoid segfaults. {handle_signals_msg}"
     )
 else:
     # Required to avoid segfaults (https://juliapy.github.io/PythonCall.jl/dev/faq/)
