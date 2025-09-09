@@ -38,6 +38,7 @@ type SingleWlRangeType = tuple[KFloat, KFloat] | tuple[KFloat, KFloat, KFloat]
 type WavelengthsType = SingleWlRangeType | list[SingleWlRangeType]
 
 type Array1dF64 = np.ndarray[tuple[int], np.dtype[np.float64]]
+type Array2dF64 = np.ndarray[tuple[int, int], np.dtype[np.float64]]
 
 
 def _covert_wavelengths_param(wls_param):
