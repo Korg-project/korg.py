@@ -300,17 +300,17 @@ def synth(
         dicts of additional keyword arguments that are respectively forwarded
         to the ``Korg.synthesize`` and ``Korg.format_A_X`` julia functions.
 
-    .. warning::
+        .. warning::
 
-       Be aware that:
+           Be aware that:
 
-       1. These kwargs are for advanced users
-       2. Misusing them will result in cryptic error messages
-       3. If you are thinking about using them, you should consider using
-          ``juliacall`` directly or switching to julia
-       4. We reserve the right to change the expected types of kwargs
-          corresponding to Julia types without obvious analogous python
-          types, at any time (e.g. between patch versions).
+           1. These kwargs are for advanced users
+           2. Misusing them will result in cryptic error messages
+           3. If you are thinking about using them, you should consider using
+              ``juliacall`` directly or switching to julia
+           4. We reserve the right to change the expected types of kwargs
+              corresponding to Julia types without obvious analogous python
+              types, at any time (e.g. between patch versions).
     """
 
     # here, we deal with building up a subset of the keyword arguments where we use
