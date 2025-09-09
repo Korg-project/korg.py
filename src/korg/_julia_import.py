@@ -19,7 +19,7 @@ if "juliacall" in sys.modules:
         handle_signals_msg = "Currently, PYTHON_JULIACALL_HANDLE_SIGNALS is not set. "
 
     warnings.warn(
-        "juliacall module already imported, so korg will not configure `PYTHON_JULIACALL_HANDLE_SIGNALS` or `PYTHON_JULIACALL_THREADS`."
+        "juliacall module already imported, so korg can not configure `PYTHON_JULIACALL_HANDLE_SIGNALS` or `PYTHON_JULIACALL_THREADS`."
         f"You should set `PYTHON_JULIACALL_HANDLE_SIGNALS=yes` to avoid segfaults. {handle_signals_msg}"
     )
 else:
