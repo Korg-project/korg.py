@@ -171,7 +171,7 @@ def load_ExoMol_linelist(
 
     .. warning::
 
-        This functionality is in beta. It's behavior may change without a major version number bump.
+        This functionality is in beta (we may change the behavior in a minor release).
     """
     return Linelist(
         Korgjl.load_ExoMol_linelist(
