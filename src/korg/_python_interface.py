@@ -139,7 +139,7 @@ def load_ExoMol_linelist(
     Load a linelist from ExoMol. Returns a `~korg.Linelist`, the same as `~korg.read_linelist`.
 
     Arguments
-    ----------
+    ---------
     species
         the species, i.e. the molecule that the linelist is for
     states_file
