@@ -269,9 +269,9 @@ def synth(
         Projected rotational velocity in km/s (default is 0).
     vmic
         microturbulent velocity in km/s (default is 1.0).
-    **abundances
+    \\*\\*abundances
         These keyword arguments can be any atomic symbol (e.g. ``Fe`` or ``C``)
-        can be used to specify a (solar relative, [``X``/H]) abundance. These
+        can be used to specify a (solar relative, [X/H]) abundance. These
         override ``M_H`` and ``alpha_H``. Specifying an individual abundance
         means that the true metallicity and alpha will not correspond precisely
         to the values of ``M_H`` and ``alpha_H``. This is the only way to
@@ -312,6 +312,7 @@ def synth(
            4. We reserve the right to change the expected types of kwargs
               corresponding to Julia types without obvious analogous python
               types, at any time (e.g. between patch versions).
+
     """
 
     # here, we deal with building up a subset of the keyword arguments where we use
