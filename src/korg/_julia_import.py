@@ -55,5 +55,9 @@ autoload_extensions = os.environ.get("PYKORG_AUTOLOAD_EXTENSIONS")
 if autoload_extensions is not None:
     os.environ["PYTHON_JULIACALL_AUTOLOAD_IPYTHON_EXTENSION"] = autoload_extensions
 
+warnings.warn(
+    f"{jl.Threads.nthreads()} julia threads, {jl.Threads.nthreads(jl.Symbol('interactive'))} of which are interactive!"
+)
+
 jl.seval("using Korg")
 Korgjl = jl.Korg
