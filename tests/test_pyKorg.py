@@ -3,7 +3,6 @@
 # package wraps.
 
 import numpy as np
-from numpy.random.mtrand import f
 import pytest
 
 import korg

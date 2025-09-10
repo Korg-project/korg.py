@@ -58,7 +58,10 @@ Tracker = 'https://github.com/ajwheeler/pykorg/issues'
 # configuration file
 docs = ['sphinx', 'furo']
 typecheck = ["mypy==1.15.0"]
-dev = ["pytest"]
+dev = [
+    "pytest",
+    "ruff>=0.12.12",
+]
 
 # hatch-specific instructions
 [tool.hatch]
