@@ -40,7 +40,8 @@ else:
     # TODO: Remove these when juliapkg lets you specify this
     for k, default in (
         ("PYTHON_JULIACALL_HANDLE_SIGNALS", "yes"),
-        ("PYTHON_JULIACALL_THREADS", "auto"),
+        # ("PYTHON_JULIACALL_THREADS", "auto"),
+        ("PYTHON_JULIACALL_THREADS", "1"),  # TODO drop
         ("PYTHON_JULIACALL_OPTLEVEL", "3"),
     ):
         os.environ[k] = os.environ.get(k, default)
