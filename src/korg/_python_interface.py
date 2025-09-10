@@ -34,7 +34,7 @@ type KFloat = float | np.float32 | np.float64
 
 # not used except to define WavelengthsType
 type SingleWlRangeType = tuple[KFloat, KFloat] | tuple[KFloat, KFloat, KFloat]
-# Everything that's a documented, guarenteed valid input to Korg.Wavelengths
+# Everything that's a documented, guaranteed valid input to Korg.Wavelengths
 type WavelengthsType = SingleWlRangeType | list[SingleWlRangeType]
 
 type Array1dF64 = np.ndarray[tuple[int], np.dtype[np.float64]]
