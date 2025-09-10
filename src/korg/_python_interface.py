@@ -4,12 +4,15 @@ This module defines the python interface to Korg
 
 import os
 from collections import ChainMap
-from collections.abc import Callable, Mapping
+from collections.abc import Callable, Iterable, Mapping
 from typing import Any, Never, cast
-from ._julia_import import jl, Korg
 
 import numpy as np
-from juliacall import VectorValue as jlVectorValue
+
+# these two imports must be in this order to prevent erroneously warning about
+# juliacall being already imported
+from ._julia_import import Korgjl, jl
+import juliacall
 
 # define some type aliases
 
@@ -29,14 +32,19 @@ type NoPyType = Never
 #   rather that arg
 type KFloat = float | np.float32 | np.float64
 
-# this is a placeholder for family of types that can be coerced to Korg.jl's internal
-# Wavelengths Type
-# Todo: get more explicit!
-# should support: 2-tuple, 3-tuple, list of 2-tuples, list of 3-tuples
-type WavelengthsType = Any
-
+# not used except to define WavelengthsType
+type SingleWlRangeType = tuple[KFloat, KFloat] | tuple[KFloat, KFloat, KFloat]
+# Everything that's a documented, guaranteed valid input to Korg.Wavelengths
+type WavelengthsType = SingleWlRangeType | list[SingleWlRangeType]
 
 type Array1dF64 = np.ndarray[tuple[int], np.dtype[np.float64]]
+type Array2dF64 = np.ndarray[tuple[int, int], np.dtype[np.float64]]
+
+
+def _covert_wavelengths_param(wls_param):
+    if isinstance(wls_param, tuple):
+        return wls_param
+    return juliacall.convert(jl.Vector, wls_param)
 
 
 def _perfect_jl_shadowing[**P, T](fn: Callable[P, T]) -> Callable[P, T]:
@@ -81,9 +89,9 @@ class Linelist:
     :py:func:`~korg.get_GES_linelist`, etc.
     """
 
-    _lines: jlVectorValue
+    _lines: juliacall.VectorValue
 
-    def __init__(self, lines: jlVectorValue):
+    def __init__(self, lines: juliacall.VectorValue):
         # this is NOT a public method
         self._lines = lines
 
@@ -98,34 +106,99 @@ class Linelist:
 
 @_perfect_jl_shadowing
 def get_APOGEE_DR17_linelist(*, include_water: bool = True) -> Linelist:
-    return Linelist(Korg.get_APOGEE_DR17_linelist(include_water=include_water))
+    return Linelist(Korgjl.get_APOGEE_DR17_linelist(include_water=include_water))
 
 
 @_perfect_jl_shadowing
 def get_GALAH_DR3_linelist() -> Linelist:
-    return Linelist(Korg.get_GALAH_DR3_linelist())
+    return Linelist(Korgjl.get_GALAH_DR3_linelist())
 
 
 @_perfect_jl_shadowing
 def get_GES_linelist(*, include_molecules: bool = True) -> Linelist:
-    return Linelist(Korg.get_GES_linelist(include_molecules=include_molecules))
+    return Linelist(Korgjl.get_GES_linelist(include_molecules=include_molecules))
 
 
 @_perfect_jl_shadowing
 def get_VALD_solar_linelist() -> Linelist:
-    return Linelist(Korg.get_VALD_solar_linelist())
+    return Linelist(Korgjl.get_VALD_solar_linelist())
+
+
+def load_ExoMol_linelist(
+    species: str,
+    states_file: str | bytes | os.PathLike,
+    transitions_file: str | bytes | os.PathLike,
+    lower_wavelength: KFloat,
+    upper_wavelength: KFloat,
+    *,
+    isotopes: Iterable[tuple[int, int]] | None = None,
+    line_strength_cutoff: KFloat = -15,
+    T_line_strength: KFloat = 3500,
+    verbose: bool = True,
+) -> Linelist:
+    """
+    Load a linelist from ExoMol. Returns a `~korg.Linelist`, the same as `~korg.read_linelist`.
+
+    Arguments
+    ---------
+    species
+        the species, i.e. the molecule that the linelist is for
+    states_file
+        the path to the ExoMol states file
+    transitions_file
+        the path to the ExoMol transitions file
+    upper_wavelength
+        the upper limit of the wavelength range to load (Å)
+    lower_wavelength
+        the lower limit of the wavelength range to load (Å)
+
+    Keyword Arguments
+    -----------------
+    isotopes
+        a vector of (atomic number, isotope number) pairs for each atom in the species.
+        If not provided, Korg will assume that the molecule is the most abundant isotopologue.
+    line_strength_cutoff
+        the cutoff for the line strength (default: -15) used to filter the
+        linelist.
+    T_line_strength
+        the temperature (K) at which to evaluate the line strength (default: 3500.0)
+    verbose
+        if `true` (default), will print progress information to the console.
+
+    Note
+    -----
+    Unlike the corresponding Julia function function provided by the Korg.jl, this function does not support
+    custom isotopic abundances.
+
+    .. warning::
+
+        This functionality is in beta (we may change the behavior in a minor release).
+    """
+    return Linelist(
+        Korgjl.load_ExoMol_linelist(
+            species,
+            os.fsdecode(states_file),
+            os.fsdecode(transitions_file),
+            lower_wavelength,
+            upper_wavelength,
+            isotopes=isotopes,
+            line_strength_cutoff=line_strength_cutoff,
+            T_line_strength=T_line_strength,
+            verbose=verbose,
+        )
+    )
 
 
 # we can't currently reuse the exact Julia signature since the Julia signature
 # explicitly states that it returns a vector of Lines
 def read_linelist(
-    fname: os.PathLike,
+    fname_arg: str | bytes | os.PathLike,
     *,
     format: str | None = None,
     isotopic_abundances: Mapping[int, Mapping[float, float]] | None = None,
 ) -> Linelist:
     # coerce fname to a string
-    coerced_fname = os.fsdecode(fname)
+    coerced_fname = os.fsdecode(fname_arg)
 
     # build up kwargs (we have to play some games here since we can't natively
     # represent the default values in python)
@@ -134,7 +207,7 @@ def read_linelist(
         kwargs["format"] = format
     if isotopic_abundances is not None:
         kwargs["isotopic_abundances"] = isotopic_abundances
-    return Linelist(Korg.read_linelist(coerced_fname, **kwargs))
+    return Linelist(Korgjl.read_linelist(coerced_fname, **kwargs))
 
 
 # we can't currently reuse the exact Julia signature since the Julia signature
@@ -196,9 +269,9 @@ def synth(
         Projected rotational velocity in km/s (default is 0).
     vmic
         microturbulent velocity in km/s (default is 1.0).
-    **abundances
+    \\*\\*abundances
         These keyword arguments can be any atomic symbol (e.g. ``Fe`` or ``C``)
-        can be used to specify a (solar relative, [``X``/H]) abundance. These
+        can be used to specify a (solar relative, [X/H]) abundance. These
         override ``M_H`` and ``alpha_H``. Specifying an individual abundance
         means that the true metallicity and alpha will not correspond precisely
         to the values of ``M_H`` and ``alpha_H``. This is the only way to
@@ -239,6 +312,7 @@ def synth(
            4. We reserve the right to change the expected types of kwargs
               corresponding to Julia types without obvious analogous python
               types, at any time (e.g. between patch versions).
+
     """
 
     # here, we deal with building up a subset of the keyword arguments where we use
@@ -254,11 +328,11 @@ def synth(
     if format_A_X_kwargs is not None:
         partial_kwargs["format_A_X_kwargs"] = format_A_X_kwargs
 
-    tmp_wls, tmp_flux, tmp_continuum = Korg.synth(
+    tmp_wls, tmp_flux, tmp_continuum = Korgjl.synth(
         Teff=Teff,
         logg=logg,
         M_H=M_H,
-        wavelengths=wavelengths,
+        wavelengths=_covert_wavelengths_param(wavelengths),
         rectify=rectify,
         R=R,
         vsini=vsini,
@@ -320,6 +394,29 @@ def synth(
 #    runtime (it simply returns the 2nd argument without any changes)
 synth.__doc__ = cast(str, synth.__doc__).format(
     default_alpha_elements=", ".join(
-        Korg.atomic_symbols[i - 1] for i in Korg.default_alpha_elements
+        Korgjl.atomic_symbols[i - 1] for i in Korgjl.default_alpha_elements
     )
 )
+
+
+# TODO docstring
+@_perfect_jl_shadowing
+def vacuum_to_air(wavelengths: Array1dF64 | KFloat) -> Array1dF64 | KFloat:
+    # this works even when wavelengths is a single KFloat because of Julia's
+    # broadcasting semantics
+    wls = jl.broadcast(Korgjl.vacuum_to_air, wavelengths)
+    if isinstance(wls, juliacall.VectorValue):
+        return np.array(wls, copy=False)
+    else:
+        return wls
+
+
+# TODO docstring
+def air_to_vacuum(wavelengths: Array1dF64 | KFloat) -> Array1dF64 | KFloat:
+    # this works even when wavelengths is a single KFloat because of Julia's
+    # broadcasting semantics
+    wls = jl.broadcast(Korgjl.air_to_vacuum, wavelengths)
+    if isinstance(wls, juliacall.VectorValue):
+        return np.array(wls, copy=False)
+    else:
+        return wls

@@ -10,10 +10,17 @@ import warnings
 # about the relevant environment variables. If not loaded,
 # set up sensible defaults.
 if "juliacall" in sys.modules:
+    handle_signals = os.environ.get("PYTHON_JULIACALL_HANDLE_SIGNALS")
+    if handle_signals:
+        handle_signals_msg = (
+            f"Currently, PYTHON_JULIACALL_HANDLE_SIGNALS is set to '{handle_signals}'."
+        )
+    else:
+        handle_signals_msg = "Currently, PYTHON_JULIACALL_HANDLE_SIGNALS is not set. "
+
     warnings.warn(
-        "juliacall module already imported. "
-        "Make sure that you have set the environment variable `PYTHON_JULIACALL_HANDLE_SIGNALS=yes` to avoid segfaults. "
-        "Also note that korg.py will not be able to configure `PYTHON_JULIACALL_THREADS` or `PYTHON_JULIACALL_OPTLEVEL` for you."
+        "juliacall module already imported, so korg can not configure `PYTHON_JULIACALL_HANDLE_SIGNALS` or `PYTHON_JULIACALL_THREADS`."
+        f"You should set `PYTHON_JULIACALL_HANDLE_SIGNALS=yes` to avoid segfaults. {handle_signals_msg}"
     )
 else:
     # Required to avoid segfaults (https://juliapy.github.io/PythonCall.jl/dev/faq/)
@@ -33,7 +40,8 @@ else:
     # TODO: Remove these when juliapkg lets you specify this
     for k, default in (
         ("PYTHON_JULIACALL_HANDLE_SIGNALS", "yes"),
-        ("PYTHON_JULIACALL_THREADS", "auto"),
+        # ("PYTHON_JULIACALL_THREADS", "auto"),
+        ("PYTHON_JULIACALL_THREADS", "1"),  # TODO drop
         ("PYTHON_JULIACALL_OPTLEVEL", "3"),
     ):
         os.environ[k] = os.environ.get(k, default)
@@ -48,5 +56,9 @@ autoload_extensions = os.environ.get("PYKORG_AUTOLOAD_EXTENSIONS")
 if autoload_extensions is not None:
     os.environ["PYTHON_JULIACALL_AUTOLOAD_IPYTHON_EXTENSION"] = autoload_extensions
 
+warnings.warn(
+    f"{jl.Threads.nthreads()} julia threads, {jl.Threads.nthreads(jl.Symbol('interactive'))} of which are interactive!"
+)
+
 jl.seval("using Korg")
-Korg = jl.Korg
+Korgjl = jl.Korg
